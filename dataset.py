@@ -13,7 +13,7 @@ class SequenceDataset(Dataset):
     """
     def __init__(self, *tensors: t.List[torch.Tensor], N: int = 1024):
         super().__init__()
-        assert all([tensor.shape[0] == tensors[0].shape[0] for tensor in tensors])
+        assert all([tensor.shape[0] == tensors[0].shape[0] for tensor in tensors]), "all tensors must have the same length!"
         self.tensors = tensors
         self.N = N
 
@@ -37,8 +37,7 @@ def make_data_loader(*tensors, N, batch_size, num_batches) -> torch.utils.data.D
     assert tensors[0].shape[0] % N == 0, "length of tensors has to be dividable by N!"
     M = tensors[0].shape[0] // N
     dataset = SequenceDataset(*tensors, N=N)
-    indices = np.arange(0, N * (M - 1))
-    indices = np.random.choice(indices, size=batch_size * num_batches, replace=False)
+    indices = np.random.choice(N * (M - 1), size=batch_size * num_batches, replace=False)
     base_sampler = SubsetRandomSampler(indices)
     loader = DataLoader(dataset, sampler=base_sampler, batch_size=batch_size)
     return loader
