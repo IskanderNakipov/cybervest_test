@@ -14,7 +14,6 @@ def parse_args():
     parser.add_argument('--M', type=int, help="Parameter M from task 1", required=True)
     parser.add_argument('--T', type=int, help="Parameter T from task 1", default=3)
     parser.add_argument('--k', type=int, help="Parameter k from task 1", default=10)
-    parser.add_argument('--amount', '-a', help='Amount of graphs to draw', default=10)
     return parser.parse_args()
 
 

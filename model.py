@@ -1,14 +1,10 @@
 import argparse
 
-import numpy as np
-
 import torch
 from torch import nn, optim
-from torch.utils.data import DataLoader, SubsetRandomSampler
 from tqdm import tqdm
 
-from dataset import SequenceDataset
-
+from dataset import make_data_loader
 from generate_data import generate_x, find_min_max
 from metrics import f1
 
@@ -64,16 +60,12 @@ def train(model: Model, X, X_val, YMin, YMin_val, YMax, YMax_val,
           N=1024, M=1000, num_epoch=10,
           epoch_size=1000, batch_size=32, device='cuda:0'):
     assert X.shape[0] == N*M
-    train_dataset = SequenceDataset(X, YMin, YMax)
     model.to(device)
     opt = optim.Adam(model.parameters())  #TODO: add lr
     for epoch in range(num_epoch):
         with tqdm(total=epoch_size, desc=f'epoch {epoch}') as tq:
             model.train()
-            indices = np.arange(0, N * (M - 1))
-            indices = np.random.choice(indices, size=batch_size * epoch_size, replace=False)
-            base_sampler = SubsetRandomSampler(indices)
-            train_loader = DataLoader(train_dataset, sampler=base_sampler, batch_size=batch_size)
+            train_loader = make_data_loader(X, YMin, YMax, N, M, batch_size, epoch_size)
             for x in tqdm(train_loader):
                 loss, min_f1, max_f1 = _train_step(model, opt, [x_.to(device) for x_ in x])
                 tq.set_postfix(loss=loss.item())
