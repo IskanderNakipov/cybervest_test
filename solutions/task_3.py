@@ -17,6 +17,6 @@ if __name__ == '__main__':
     y_msg = "Finding optimums for X"
     YMin, YMax = timer(find_min_max, filename, y_msg)(X, args.T, args.k)
 
-    loader = make_data_loader(X, YMin, YMax, args.N, args.M, args.batch_size, args.num_batches)
+    loader = make_data_loader(X, YMin, YMax, N=args.N, batch_size=args.batch_size, num_batches=args.num_batches)
     timer(sample, filename,
           f"{args.num_batches} batches sampling with batch size = {args.batch_size}")(loader)

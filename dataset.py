@@ -1,28 +1,29 @@
+import typing as t
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, X, YMin, YMax, N=1024):
+    def __init__(self, *tensors: t.List[torch.Tensor], N: int = 1024):
         super().__init__()
-        self.X = torch.from_numpy(X)
-        self.YMin = torch.from_numpy(YMin)
-        self.YMax = torch.from_numpy(YMax)
+        assert all([tensor.shape[0] == tensors[0].shape[0] for tensor in tensors])
+        self.tensors = tensors
         self.N = N
 
     def __len__(self):
-        return self.X.shape[0]
+        return self.tensors[0].shape[0]
 
     def __getitem__(self, i: int):
-        X = self.X[i: i + self.N]
-        YMin = self.YMin[i: i + self.N]
-        YMax = self.YMax[i: i + self.N]
-        return X, YMin, YMax
+        tensors = [tensor[i:i + self.N] for tensor in self.tensors]
+        return tensors
 
 
-def make_data_loader(X, YMin, YMax, N, M, batch_size, num_batches):
-    dataset = SequenceDataset(X, YMin, YMax, N)
+def make_data_loader(*tensors, N, batch_size, num_batches) -> torch.utils.data.DataLoader:
+    assert tensors[0].shape[0] % N == 0, "length of tensors has to be dividable by N!"
+    M = tensors[0].shape[0] // N
+    dataset = SequenceDataset(*tensors, N=N)
     indices = np.arange(0, N * (M - 1))
     indices = np.random.choice(indices, size=batch_size * num_batches, replace=False)
     base_sampler = SubsetRandomSampler(indices)

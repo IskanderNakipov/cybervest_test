@@ -65,7 +65,7 @@ def train(model: Model, X, X_val, YMin, YMin_val, YMax, YMax_val,
     for epoch in range(num_epoch):
         with tqdm(total=epoch_size, desc=f'epoch {epoch}') as tq:
             model.train()
-            train_loader = make_data_loader(X, YMin, YMax, N, M, batch_size, epoch_size)
+            train_loader = make_data_loader(X, YMin, YMax, N=N, batch_size=batch_size, num_batches=epoch_size)
             for x in tqdm(train_loader):
                 loss, min_f1, max_f1 = _train_step(model, opt, [x_.to(device) for x_ in x])
                 tq.set_postfix(loss=loss.item())
