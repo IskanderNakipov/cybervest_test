@@ -10,6 +10,7 @@ from tqdm import tqdm
 from dataset import SequenceDataset
 
 from generate_data import generate_x, find_min_max
+from metrics import f1
 
 
 def parse_args():
@@ -34,39 +35,10 @@ class Model(nn.Module):
         return torch.sigmoid(self.classifier(X))
 
 
-def precision(pred, true):
-    if pred.argmax(dim=1).sum().item() == 0:
-        if true.sum().item() == 0:
-            return 1
-        else:
-            return 0
-    res = (((pred > 0.5).float() == true) & (true == 1)).float().sum() / (pred > 0.5).float().sum()
-    return res.item()
-
-
-def recall(pred, true):
-    if true.sum().item() == 0:
-        if ((pred > 0.5).float()).sum().item() == 0:
-            return 1
-        else:
-            return 0
-    res = (((pred > 0.5).float() == true) & (true == 1)).float().sum() / true.sum()
-    return res.item()
-
-
-def f1(pred, true):
-    prec = precision(pred, true)
-    rec = recall(pred, true)
-    if prec * rec == 0:
-        return 0
-    return 2 * prec * rec / (prec + rec)
-
-
 def _train_step(model, opt, x):
     X, YMin, YMax = x
     Y = torch.cat([YMin.unsqueeze(-1), YMax.unsqueeze(-1)], dim=-1).float()
     pred = model(X.unsqueeze(-1).float())
-    print(pred.mean().item())
     loss = nn.functional.binary_cross_entropy(pred, Y)
     loss.backward()
     opt.step()
