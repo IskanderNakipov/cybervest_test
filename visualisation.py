@@ -1,11 +1,8 @@
 import argparse
-import logging
 
 import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
-
-from generate_data import generate_x, find_min_max
 
 
 def parse_args():
@@ -39,16 +36,3 @@ def visualise_x(X, start, N=1024, YMin=None, YMax=None):
     plt.grid(True)
     plt.xlabel('Position in X')
     plt.ylabel("Value in X")
-
-
-if __name__ == '__main__':
-    logging.basicConfig(filename='task_2.log', filemode='w',
-                        format="%(asctime)s--%(levelname)s--%(message)s", level=logging.INFO)
-    args = parse_args()
-    X = generate_x(args.M, args.N)
-    YMin, YMax = find_min_max(X, args.T, args.k)
-
-    for _ in range(args.amount):
-        start = np.random.randint(0, args.N * (args.M - 1))
-        visualise_x(X, start, args.N, YMin, YMax)
-        plt.show()
