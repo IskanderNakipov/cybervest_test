@@ -4,17 +4,17 @@ def precision(pred, true):
             return 1
         else:
             return 0
-    res = (((pred > 0.5).float() == true) & (true == 1)).float().sum() / (pred > 0.5).float().sum()
+    res = ((pred.argmax(dim=1) == true) & (true == 1)).float().sum() / pred.argmax(dim=1).sum()
     return res.item()
 
 
 def recall(pred, true):
     if true.sum().item() == 0:
-        if ((pred > 0.5).float()).sum().item() == 0:
+        if (pred.argmax(dim=1)).sum().item() == 0:
             return 1
         else:
             return 0
-    res = (((pred > 0.5).float() == true) & (true == 1)).float().sum() / true.sum()
+    res = ((pred.argmax(dim=1) == true) & (true == 1)).float().sum() / true.sum()
     return res.item()
 
 

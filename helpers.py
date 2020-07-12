@@ -26,3 +26,8 @@ def parse_args():
     parser.add_argument('--num_batches', '-nb', help='Amount of batches to sample', default=100)
     parser.add_argument('--batch_size', '-B', help='Batch size', default=16)
     return parser.parse_args()
+
+
+def flatten(tensor):
+    batch_size, length = tensor.shape[:2]
+    return tensor.view(batch_size * length, -1)

@@ -7,6 +7,7 @@ from tqdm import tqdm
 from dataset import make_data_loader
 from generate_data import generate_x, find_min_max
 from metrics import f1
+from helpers import flatten
 
 
 def parse_args():
@@ -24,35 +25,43 @@ class Model(nn.Module):
     def __init__(self, num_layers=2, hidden_size=128):
         super().__init__()
         self.rnn = nn.GRU(1, hidden_size, num_layers, batch_first=True, bidirectional=True)
-        self.classifier = nn.Linear(2 * hidden_size, 2)
+        self.classifier = nn.Linear(2 * hidden_size, 3)
 
     def forward(self, X):
         X = self.rnn(X)[0]
-        return torch.sigmoid(self.classifier(X))
+        return self.classifier(X)
 
 
 def _train_step(model, opt, x):
     X, YMin, YMax = x
-    Y = torch.cat([YMin.unsqueeze(-1), YMax.unsqueeze(-1)], dim=-1).float()
+    placeholder = torch.ones_like(YMin) * 0.5
+    Y = torch.cat([placeholder.unsqueeze(-1),
+                   YMin.unsqueeze(-1),
+                   YMax.unsqueeze(-1)], dim=-1)
+    Y = Y.argmax(dim=-1)
     pred = model(X.unsqueeze(-1).float())
-    loss = nn.functional.binary_cross_entropy(pred, Y)
+    loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
     loss.backward()
     opt.step()
     opt.zero_grad()
-    min_f1 = f1(pred[:, :, 0], YMin)
-    max_f1 = f1(pred[:, :, 1], YMax)
+    min_f1 = f1(flatten(pred), YMin.flatten())
+    max_f1 = f1(flatten(pred), YMax.flatten())
     return loss, min_f1, max_f1
 
 
 def _eval(model, X_val, YMin_val, YMax_val, device):
     X_val, YMin_val, YMax_val = [torch.from_numpy(x).to(device) for x in [X_val, YMin_val, YMax_val]]
-    Y = torch.cat([YMin_val.unsqueeze(-1), YMax_val.unsqueeze(-1)], dim=-1).float().unsqueeze(0)
+    placeholder = torch.ones_like(YMin_val) * 0.5
+    Y = torch.cat([placeholder.unsqueeze(-1),
+                   YMin_val.unsqueeze(-1),
+                   YMax_val.unsqueeze(-1)], dim=-1)
+    Y = Y.argmax(dim=-1)
     model.eval()
     with torch.no_grad():
         pred = model(X_val.unsqueeze(-1).unsqueeze(0).float())
-        loss = nn.functional.binary_cross_entropy(pred, Y)
-        min_f1 = f1(pred[:, :, 0], YMax_val)
-        max_f1 = f1(pred[:, :, 1], YMin_val)
+        loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
+        min_f1 = f1(flatten(pred), YMin_val.flatten())
+        max_f1 = f1(flatten(pred), YMax_val.flatten())
     return loss, min_f1, max_f1
 
 
