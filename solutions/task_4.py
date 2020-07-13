@@ -1,4 +1,4 @@
-import json
+import os, json
 
 import torch
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     training_message = "Training model"
     timer(train, filename, training_message)(model, X, X_val, YMin, YMin_val, YMax, YMax_val, args.N, args.M,
                                              args.epochs, args.lr, args.num_batches, args.batch_size, args.device)
-    torch.save(model.state_dict(), 'model.pkl')
-    with open('config.json', 'w') as f:
+    torch.save(model.state_dict(), os.path.join(args.model_path, 'model.pkl'))
+    with open(os.path.join(args.model_path, 'config.json'), 'w') as f:
         json.dump(config, f, ensure_ascii=False, indent=4)
 
