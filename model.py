@@ -1,4 +1,3 @@
-import argparse
 import typing as t
 
 import torch
@@ -6,21 +5,8 @@ from torch import nn, optim
 from tqdm import tqdm
 
 from dataset import make_data_loader
-from generate_data import generate_x, find_min_max
-from metrics import f1
 from helpers import flatten
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--N', type=int, help="Parameter N from task 1", default=1024)
-    parser.add_argument('--M', type=int, help="Parameter M from task 1", required=True)
-    parser.add_argument('--T', type=int, help="Parameter T from task 1", default=3)
-    parser.add_argument('--k', type=int, help="Parameter k from task 1", default=10)
-    parser.add_argument('--num_batches', '-nb', help='Amount of batches to sample every epoch', default=100)
-    parser.add_argument('--batch_size', '-B', help='Batch size', default=16)
-    parser.add_argument('--lr', help='Learning rate', default=1e-3, type=float)
-    return parser.parse_args()
+from metrics import f1
 
 
 class Model(nn.Module):
@@ -129,17 +115,3 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
             model.eval()
         _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
     return model
-
-
-def main():
-    model = Model()
-    args = parse_args()
-    X = generate_x(args.M, args.N)
-    YMin, YMax = find_min_max(X, args.T, args.k)
-
-    X_val = generate_x(args.M, args.N)
-    YMin_val, YMax_val = find_min_max(X_val, args.T, args.k)[:args.N]
-    train(model, X, X_val, YMin, YMin_val, YMax, YMax_val, args.N, args.M)
-
-
-main()
