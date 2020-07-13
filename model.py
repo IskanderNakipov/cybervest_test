@@ -1,4 +1,5 @@
 import logging
+import os, json
 import typing as t
 
 import torch
@@ -32,6 +33,15 @@ class Model(nn.Module):
     def predict_proba(self, X):
         with torch.no_grad():
             return torch.softmax(self(X).squeeze(0), dim=-1)[:, 1:]
+
+    @classmethod
+    def load(cls, path: str) -> "Model":
+        with open(os.path.join(path, 'config.json')) as f:
+            config = json.load(f)
+        weights = torch.load(os.path.join(path, 'model.pkl'), map_location='cpu')
+        model = Model(**config)
+        model.load_state_dict(weights)
+        return model
 
 
 def _unpack_data(x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, torch.Tensor]:
