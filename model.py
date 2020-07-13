@@ -24,7 +24,9 @@ class Model(nn.Module):
         self.classifier = nn.Linear(2 * hidden_size, 3)
 
     def forward(self, X):
-        X = self.rnn(X)[0]
+        X -= X.roll(1, 1)
+        X[:, 0] *= 0
+        X = self.rnn(X.transpose(1, 0))[0].transpose(1, 0)
         return self.classifier(X)
 
 
