@@ -23,8 +23,11 @@ def parse_args():
     parser.add_argument('--T', type=int, help="Parameter T from task 1", default=3)
     parser.add_argument('--k', type=int, help="Parameter k from task 1", default=10)
     parser.add_argument('--amount_graphs', '-a', help='Amount of graphs to draw', default=10)
-    parser.add_argument('--num_batches', '-nb', help='Amount of batches to sample', default=100)
+    parser.add_argument('--num_batches', '-nb', help='Amount of batches to sample every epoch', default=100)
     parser.add_argument('--batch_size', '-B', help='Batch size', default=16)
+    parser.add_argument('--lr', help='Learning rate', default=1e-3, type=float)
+    parser.add_argument('--epochs', help='Number of epochs', default=5, type=int)
+    parser.add_argument('--device', help='Device to train on', default="cuda:0", type=str)
     return parser.parse_args()
 
 
