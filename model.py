@@ -1,12 +1,13 @@
 import typing as t
 
 import torch
+from sklearn.metrics import classification_report
+import numpy as np
 from torch import nn, optim
 from tqdm import tqdm
 
 from dataset import make_data_loader
 from helpers import flatten
-from metrics import f1
 
 
 class Model(nn.Module):
@@ -41,41 +42,35 @@ def _unpack_data(x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tupl
 
 
 def _train_step(model: Model, opt: optim.Optimizer,
-                x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, float, float]:
+                x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Performs one step of training
     :param model: model to train
     :param opt: optimizer
     :param x: tuple [input, YMin, YMax]
-    :return: loss, f1-score for minimums anf f1-score for maximums
+    :return: loss, predicts and true labels
     """
     X, Y = _unpack_data(x)
-    YMin, YMax = x[1:]
     pred = model(X.unsqueeze(-1).float())
     loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
     loss.backward()
     opt.step()
     opt.zero_grad()
-    min_f1 = f1(flatten(pred), YMin.flatten())  # TODO: fix pred indexing
-    max_f1 = f1(flatten(pred), YMax.flatten())
-    return loss, min_f1, max_f1
+    return loss, flatten(pred).argmax(dim=-1), Y.flatten()
 
 
-def _eval(model: Model, x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, float, float]:
+def _eval(model: Model, x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Evaluates model
     :param model: model to eval
     :param x: tuple [input, YMin, YMax]
-    :return: loss, f1-score for minimums anf f1-score for maximums
+    :return: loss, predicts and true labels
     """
     X, Y = _unpack_data(x)
-    YMin, YMax = x[1:]
     with torch.no_grad():
         pred = model(X.unsqueeze(-1).unsqueeze(0).float())
         loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
-        min_f1 = f1(flatten(pred), YMin.flatten())
-        max_f1 = f1(flatten(pred), YMax.flatten())
-    return loss, min_f1, max_f1
+    return loss, flatten(pred).argmax(dim=-1), Y.flatten()
 
 
 def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
@@ -105,13 +100,23 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
     model.to(device)
     opt = optim.Adam(model.parameters(), lr=lr)
     for epoch in range(num_epoch):
-        with tqdm(total=epoch_size, desc=f'epoch {epoch}') as tq:
+        with tqdm(total=epoch_size, desc=f'epoch {epoch} of {num_epoch}') as tq:
             model.train()
             train_loader = make_data_loader(X, YMin, YMax, N=N, batch_size=batch_size, num_batches=epoch_size)
+            pred, true = [], []
             for x in tqdm(train_loader):
-                loss, min_f1, max_f1 = _train_step(model, opt, [x_.to(device) for x_ in x])
+                loss, pred_, true_ = _train_step(model, opt, [x_.to(device) for x_ in x])
+                pred.append(pred_.detach().cpu().numpy())
+                true.append(true_.cpu().numpy())
                 tq.set_postfix(loss=loss.item())
                 tq.update()
-            model.eval()
-        _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
+            true = np.concatenate(true)
+            pred = np.concatenate(pred)
+            print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
+
+        model.eval()
+        loss, pred, true = _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
+        true = true.cpu().numpy()
+        pred = pred.cpu().numpy()
+        print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
     return model
