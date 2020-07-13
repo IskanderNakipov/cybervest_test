@@ -1,4 +1,5 @@
 import argparse
+import typing as t
 
 import torch
 from torch import nn, optim
@@ -23,6 +24,11 @@ def parse_args():
 
 class Model(nn.Module):
     def __init__(self, num_layers=2, hidden_size=128):
+        """
+        BiGRU neural model, which finds minimums and maximums of time series with
+        :param num_layers: number of GRU layers
+        :param hidden_size: size of hidden GRU layers
+        """
         super().__init__()
         self.rnn = nn.GRU(1, hidden_size, num_layers, batch_first=True, bidirectional=True)
         self.classifier = nn.Linear(2 * hidden_size, 3)
@@ -32,7 +38,15 @@ class Model(nn.Module):
         return self.classifier(X)
 
 
-def _train_step(model, opt, x):
+def _train_step(model: Model, opt: optim.Optimizer,
+                x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, float, float]:
+    """
+    Performs one step of training
+    :param model: model to train
+    :param opt: optimizer
+    :param x: tuple [input, YMin, YMax]
+    :return: loss, f1-score for minimums anf f1-score for maximums
+    """
     X, YMin, YMax = x
     placeholder = torch.ones_like(YMin) * 0.5
     Y = torch.cat([placeholder.unsqueeze(-1),
@@ -44,7 +58,7 @@ def _train_step(model, opt, x):
     loss.backward()
     opt.step()
     opt.zero_grad()
-    min_f1 = f1(flatten(pred), YMin.flatten())
+    min_f1 = f1(flatten(pred), YMin.flatten())  # TODO: fix pred indexing
     max_f1 = f1(flatten(pred), YMax.flatten())
     return loss, min_f1, max_f1
 
