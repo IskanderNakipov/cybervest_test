@@ -45,8 +45,8 @@ def visualise_probas(X, probas, start, N=1024, YMin=None, YMax=None):
     ax.twinx()
     x = np.arange(start, start + N)
     probas_ = probas[start: start + N]
+    plt.stackplot(x, probas_[:, 0], alpha=0.25, color='red', labels=["Proba of minimum"])
     plt.stackplot(x, probas_[:, 1], alpha=0.25, color='green', labels=["Proba of maximum"])
-    plt.stackplot(x, probas_[:, 2], alpha=0.25, color='red', labels=["Proba of minimum"])
     return ax
 
 
