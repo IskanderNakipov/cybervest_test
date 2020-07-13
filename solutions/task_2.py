@@ -18,5 +18,6 @@ if __name__ == '__main__':
     for _ in range(args.amount_graphs):
         start = np.random.randint(0, args.N * (args.M - 1))
         visualise_x(X, start, args.N, YMin, YMax)
+        plt.legend()
         plt.show()
 

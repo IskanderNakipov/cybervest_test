@@ -18,10 +18,10 @@ def visualise_x(X, start, N=1024, YMin=None, YMax=None):
     ax = sns.lineplot(x, X[start: start + N])
     if YMin is not None:
         x = np.argwhere(YMin[start: start + N])[:, 0] + start
-        sns.scatterplot(x, X[x])
+        plt.scatter(x, X[x], s=100, label='Min', c='pink')
     if YMax is not None:
         x = np.argwhere(YMax[start: start + N])[:, 0] + start
-        sns.scatterplot(x, X[x])
+        plt.scatter(x, X[x], s=100, label='Max', c='lightgreen')
     plt.grid(True)
     plt.xlabel('Position in X')
     plt.ylabel("Value in X")
