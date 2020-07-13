@@ -21,7 +21,7 @@ class Model(nn.Module):
         :param hidden_size: size of hidden GRU layers
         """
         super().__init__()
-        self.rnn = SRU(1, hidden_size, num_layers, bidirectional=True, layer_norm=True)
+        self.rnn = SRU(1, hidden_size, num_layers, bidirectional=True)
         self.classifier = nn.Linear(2 * hidden_size, 3)
 
     def forward(self, X):
