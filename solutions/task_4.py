@@ -17,6 +17,7 @@ if __name__ == '__main__':
     X_val = generate_x(args.M, args.N)
     YMin_val, YMax_val = find_min_max(X_val, args.T, args.k)[:args.N]
     X, X_val, YMin, YMin_val, YMax, YMax_val = [torch.from_numpy(x) for x in [X, X_val, YMin, YMin_val, YMax, YMax_val]]
-    train(model, X, X_val, YMin, YMin_val, YMax, YMax_val, args.N, args.M, args.epochs, args.lr,
-          args.num_batches, args.batch_size, args.device)
+    training_message = "Training model"
+    timer(train, filename, training_message)(model, X, X_val, YMin, YMin_val, YMax, YMax_val, args.N, args.M,
+                                             args.epochs, args.lr, args.num_batches, args.batch_size, args.device)
 

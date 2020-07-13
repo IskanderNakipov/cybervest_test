@@ -1,7 +1,8 @@
+import logging
 import typing as t
 
 import torch
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, precision_recall_fscore_support
 import numpy as np
 from torch import nn, optim
 from tqdm import tqdm
@@ -113,10 +114,14 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
             true = np.concatenate(true)
             pred = np.concatenate(pred)
             print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
+            scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)
+            logging.info(f"Training for epoch {epoch} ended, scores are {scores['micro avg']}")
 
         model.eval()
         loss, pred, true = _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
         true = true.cpu().numpy()
         pred = pred.cpu().numpy()
         print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
+        scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)
+        logging.info(f"Validation for epoch {epoch} ended, scores are {scores['micro avg']}")
     return model
