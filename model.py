@@ -1,11 +1,11 @@
+import json
 import logging
-import os, json
+import os
 import typing as t
 
 import torch
-from sru import SRU
 from sklearn.metrics import classification_report
-import numpy as np
+from sru import SRU
 from torch import nn, optim
 from tqdm import tqdm
 
@@ -21,7 +21,7 @@ class Model(nn.Module):
         :param hidden_size: size of hidden GRU layers
         """
         super().__init__()
-        self.rnn = SRU(1, hidden_size, num_layers, bidirectional=True)
+        self.rnn = SRU(1, hidden_size, num_layers, bidirectional=True, layer_norm=True)
         self.classifier = nn.Linear(2 * hidden_size, 3)
 
     def forward(self, X):
@@ -124,20 +124,12 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
         with tqdm(total=epoch_size, desc=f'epoch {epoch} of {num_epoch}') as tq:
             model.train()
             train_loader = make_data_loader(X, YMin, YMax, N=N, batch_size=batch_size, num_batches=epoch_size)
-            pred, true = [], []
             for x in tqdm(train_loader):
                 loss, pred_, true_ = _train_step(model, opt, [x_.to(device) for x_ in x])
-                pred.append(pred_.detach().cpu().numpy())
-                true.append(true_.cpu().numpy())
                 tq.set_postfix(loss=loss.item(), lr=sh.get_last_lr())
                 tq.update()
             sh.step()
-            true = np.concatenate(true)
-            pred = np.concatenate(pred)
-            print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
-            scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)['micro avg']
-            del scores['support']
-            logging.info(f"Training for epoch {epoch} ended, scores are {scores}")
+            logging.info(f"Training for epoch {epoch}")
 
         model.eval()
         loss, pred, true = _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
