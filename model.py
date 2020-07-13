@@ -2,7 +2,8 @@ import logging
 import typing as t
 
 import torch
-from sklearn.metrics import classification_report, precision_recall_fscore_support
+from sru import SRU
+from sklearn.metrics import classification_report
 import numpy as np
 from torch import nn, optim
 from tqdm import tqdm
@@ -12,14 +13,14 @@ from helpers import flatten
 
 
 class Model(nn.Module):
-    def __init__(self, num_layers=2, hidden_size=128):
+    def __init__(self, num_layers=4, hidden_size=512):
         """
         BiGRU neural model, which finds minimums and maximums of time series with
         :param num_layers: number of GRU layers
         :param hidden_size: size of hidden GRU layers
         """
         super().__init__()
-        self.rnn = nn.GRU(1, hidden_size, num_layers, batch_first=True, bidirectional=True)
+        self.rnn = SRU(1, hidden_size, num_layers, bidirectional=True)
         self.classifier = nn.Linear(2 * hidden_size, 3)
 
     def forward(self, X):
@@ -53,7 +54,8 @@ def _train_step(model: Model, opt: optim.Optimizer,
     """
     X, Y = _unpack_data(x)
     pred = model(X.unsqueeze(-1).float())
-    loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
+    loss = nn.functional.cross_entropy(flatten(pred), Y.flatten(),
+                                       weight=torch.Tensor([2e-2, 1, 1]).to(pred.device))
     loss.backward()
     opt.step()
     opt.zero_grad()
@@ -70,7 +72,8 @@ def _eval(model: Model, x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) ->
     X, Y = _unpack_data(x)
     with torch.no_grad():
         pred = model(X.unsqueeze(-1).unsqueeze(0).float())
-        loss = nn.functional.cross_entropy(flatten(pred), Y.flatten())
+        loss = nn.functional.cross_entropy(flatten(pred), Y.flatten(),
+                                           weight=torch.Tensor([2e-2, 1, 1]).to(pred.device))
     return loss, flatten(pred).argmax(dim=-1), Y.flatten()
 
 
@@ -100,6 +103,7 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
     assert X.shape[0] == N*M
     model.to(device)
     opt = optim.Adam(model.parameters(), lr=lr)
+    sh = optim.lr_scheduler.StepLR(opt, 1, 0.9)
     for epoch in range(num_epoch):
         with tqdm(total=epoch_size, desc=f'epoch {epoch} of {num_epoch}') as tq:
             model.train()
@@ -109,19 +113,23 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
                 loss, pred_, true_ = _train_step(model, opt, [x_.to(device) for x_ in x])
                 pred.append(pred_.detach().cpu().numpy())
                 true.append(true_.cpu().numpy())
-                tq.set_postfix(loss=loss.item())
+                tq.set_postfix(loss=loss.item(), lr=sh.get_last_lr())
                 tq.update()
+            sh.step()
             true = np.concatenate(true)
             pred = np.concatenate(pred)
             print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
-            scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)
-            logging.info(f"Training for epoch {epoch} ended, scores are {scores['micro avg']}")
+            scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)['micro avg']
+            del scores['support']
+            logging.info(f"Training for epoch {epoch} ended, scores are {scores}")
 
         model.eval()
         loss, pred, true = _eval(model, [x_.to(device) for x_ in [X_val, YMin_val, YMax_val]])
         true = true.cpu().numpy()
         pred = pred.cpu().numpy()
         print(classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max']))
-        scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)
-        logging.info(f"Validation for epoch {epoch} ended, scores are {scores['micro avg']}")
+        scores = classification_report(true, pred, labels=[1, 2], target_names=['Min', 'Max'], output_dict=True)['micro avg']
+        del scores['support']
+        scores['loss'] = loss.item()
+        logging.info(f"Validation for epoch {epoch} ended, scores are {scores}")
     return model
