@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit, jit
 
 
 def generate_x(M: int, N: int = 1024):
@@ -25,16 +26,17 @@ def find_min_max(X, T=3, k=10):
     return YMin, YMax
 
 
+@jit(nopython=True)
 def _find_min_max(X, min_dist, start, indexes, step=1):
     index = start
     end = X.shape[0] if step > 0 else -1
-    candidate = None
+    candidate = -X.shape[0]
     on_max = 1
     for i in range(start, end, step):
-        if candidate is None and (X[index] - X[i]) * on_max >= min_dist:
+        if candidate == -X.shape[0] and (X[index] - X[i]) * on_max >= min_dist:
             candidate = i
             continue
-        if candidate is not None:
+        if candidate != -X.shape[0]:
             if X[i] * on_max <= X[candidate] * on_max:
                 candidate = i
             elif (X[i] - X[candidate]) * on_max >= min_dist:
