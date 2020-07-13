@@ -31,7 +31,7 @@ class Model(nn.Module):
 
     def predict_proba(self, X):
         with torch.no_grad():
-            return self(X).squeeze(0)[:, 1:]
+            return torch.softmax(self(X).squeeze(0), dim=-1)[:, 1:]
 
 
 def _unpack_data(x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, torch.Tensor]:
@@ -61,7 +61,7 @@ def _train_step(model: Model, opt: optim.Optimizer,
     X, Y = _unpack_data(x)
     pred = model(X.unsqueeze(-1).float())
     loss = nn.functional.cross_entropy(flatten(pred), Y.flatten(),
-                                       weight=torch.Tensor([2e-2, 1, 1]).to(pred.device))
+                                       weight=torch.Tensor([2e-1, 1, 1]).to(pred.device))
     loss.backward()
     opt.step()
     opt.zero_grad()
@@ -79,7 +79,7 @@ def _eval(model: Model, x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) ->
     with torch.no_grad():
         pred = model(X.unsqueeze(-1).unsqueeze(0).float())
         loss = nn.functional.cross_entropy(flatten(pred), Y.flatten(),
-                                           weight=torch.Tensor([2e-2, 1, 1]).to(pred.device))
+                                           weight=torch.Tensor([2e-1, 1, 1]).to(pred.device))
     return loss, flatten(pred).argmax(dim=-1), Y.flatten()
 
 
@@ -109,7 +109,7 @@ def train(model: Model, X: torch.Tensor, X_val: torch.Tensor,
     assert X.shape[0] == N*M
     model.to(device)
     opt = optim.Adam(model.parameters(), lr=lr)
-    sh = optim.lr_scheduler.StepLR(opt, 1, 0.9)
+    sh = optim.lr_scheduler.StepLR(opt, 1, 0.5)
     for epoch in range(num_epoch):
         with tqdm(total=epoch_size, desc=f'epoch {epoch} of {num_epoch}') as tq:
             model.train()
