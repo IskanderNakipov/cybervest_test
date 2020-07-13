@@ -29,6 +29,10 @@ class Model(nn.Module):
         X = self.rnn(X.transpose(1, 0))[0].transpose(1, 0)
         return self.classifier(X)
 
+    def predict_proba(self, X):
+        with torch.no_grad():
+            return self(X).squeeze(0)[:, 1:]
+
 
 def _unpack_data(x: t.Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> t.Tuple[torch.Tensor, torch.Tensor]:
     """
