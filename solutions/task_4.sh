@@ -1,0 +1,1 @@
+PYTHONPATH=./ python solutions/task_4.py --M 100000 --batch_size 64 --epochs 5 --num_batches 2500 --lr 0.0003 --hidden_size 64 --num_layers 6

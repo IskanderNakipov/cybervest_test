@@ -1,0 +1,1 @@
+PYTHONPATH=./ python task_1.py --M 1000
