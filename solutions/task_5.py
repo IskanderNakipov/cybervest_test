@@ -21,7 +21,7 @@ if __name__ == '__main__':
         start = np.random.randint(0, args.N * (args.M - 1))
         visualise_probas(X, probas, start, args.N, YMin, YMax)
         plt.legend()
-    plt.show()
+        plt.show()
     with torch.no_grad():
         pred = model(torch.from_numpy(X).unsqueeze(0).unsqueeze(-1).float()).numpy()
         pred = pred.squeeze(0).argmax(axis=-1)
