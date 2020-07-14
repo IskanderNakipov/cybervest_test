@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--device', help='Device to train on', default="cuda:0", type=str)
     parser.add_argument('--hidden_size', help='Size of hidden RNN layers', default=64, type=int)
     parser.add_argument('--num_layers', help='Size of hidden RNN layers', default=4, type=int)
-    parser.add_argument('--model_path', help='Path to save or load model', default='./', type=str)
+    parser.add_argument('--model_path', help='Path to save or load model', default='./model', type=str)
     return parser.parse_args()
 
 

@@ -1,1 +1,1 @@
-PYTHONPATH=./ python task_3.py --M 1000
+PYTHONPATH=./ python solutions/task_5.py --M 1000
